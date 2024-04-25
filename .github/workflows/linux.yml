@@ -1,0 +1,52 @@
+name: linux
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os: [ ubuntu-22.04 ]
+        build_type: [ Debug, Release ]
+        compiler: [ g++, clang++ ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+          echo "install-output-dir=${{ github.workspace }}/install" >> "$GITHUB_OUTPUT"
+
+      # Configure and execute a regular build, with settings as if for release
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+          -DPLF_COLONY_BUILD_TESTS=ON
+          -DPLF_COLONY_USE_ASAN=ON
+          -DPLF_COLONY_USE_UBSAN=ON
+          -DPLF_COLONY_USE_LSAN=ON
+          -S ${{ github.workspace }}
+
+      - name: Build
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+      - name: Test
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: ctest --build-config ${{ matrix.build_type }}
+
+      - name: Install
+        run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --prefix ${{ steps.strings.outputs.install-output-dir }}
+
