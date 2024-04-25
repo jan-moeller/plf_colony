@@ -51,10 +51,31 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 add_library(plf::colony ALIAS ${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME}
-        PUBLIC_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}-${CMAKE_PROJECT_VERSION}
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+        "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        VERSION ${CMAKE_PROJECT_VERSION}
+        COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT
 )
+install(TARGETS ${PROJECT_NAME}
+        EXPORT ${PROJECT_NAME}Targets
+        LIBRARY DESTINATION lib COMPONENT Runtime
+        ARCHIVE DESTINATION lib COMPONENT Development
+        RUNTIME DESTINATION bin COMPONENT Runtime
+        PUBLIC_HEADER DESTINATION include COMPONENT Development
+        BUNDLE DESTINATION bin COMPONENT Runtime
+)
+configure_package_config_file(
+        "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+        "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+        INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
+)
+
+install(EXPORT ${PROJECT_NAME}Targets DESTINATION lib/cmake/${PROJECT_NAME})
+install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+        DESTINATION lib/cmake/${PROJECT_NAME})
+install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
 
 #############################################################################################################
 # Test target (if configured that way)
